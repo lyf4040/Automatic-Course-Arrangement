@@ -9,9 +9,14 @@ import os
 
 ########################1.1版本
 # 加入veciSubject
+########################2.0版本
+# 输出改成总课表模式
+########################2.1版本(working)
+# 修改一个老师同一天上一个班两门不同课程会卡死的问题
 ####################################
 
 iConstEmpty = -10 #定义一个数表示课表上的空时间
+iTeacherVoid = -15 #写死的教师
 #以学生为父类，对老师进行需要班级的写入
 #增加schedule的输入，控制某些学生在某些时间固定上什么课
 class Student:
@@ -22,12 +27,29 @@ class Student:
         self.veciSubject = veciSubject # index 为老师编号，内容为 [课程编号，周课时]
         self.schedule = schedule #教师编号
         self.subjectSchedule =  np.copy(self.schedule) #课程编号
+        self.iSubject = -20 #
 
 
     def TimeAvailable(self, time,iTeacher):
         #是否需要传入，课程名字
         #if len(veciSubject[iTeacher]) == 1:
         #这里要等到读入总排课表和去掉上下午班才能做！！！！！！！！！！！！！！！！！！！
+        imaxTeacherSubjectLen = 0
+        for i in range(0,len(veciSubject)):
+            if imaxTeacherSubjectLen < len(veciSubject[i]):
+                imaxTeacherSubjectLen = len(veciSubject[i])
+
+        #print 'here'
+        #self.iSubjectiSubject = random.randint(0, len(self.veciSubject[iTeacher]) - 1)
+        #while self.veciSubject[iTeacher][self.iSubject][1] == 0:
+            #self.iSubject = (self.iSubject + 1) % (len(self.veciSubject[iTeacher]))
+
+
+
+        for i in range(0,3):
+            if self.subjectSchedule[i][time[1]] == self.iSubject and teacherList[iTeacher].strName != u'':
+                return False
+
         for i in range(0,3):
             if self.schedule[i][time[1]] == iTeacher and teacherList[iTeacher].strName != u'':
                 # 第一个判断为限定老师一天只上这个班一节课！！！！！！！！！！！！！！！！！！！！！
@@ -51,9 +73,9 @@ class Student:
     def UnAssignedTeacher(self, iTeacher, time):
         self.veciTeacher[iTeacher] = self.veciTeacher[iTeacher] + 2
         self.schedule[time[0]][time[1]] = iConstEmpty
-        for iSubjectPosition in range(0,len(veciSubject[iTeacher])):
-            if veciSubject[iTeacher][iSubjectPosition][0] ==  self.subjectSchedule[time[0]][time[1]]:
-                veciSubject[iTeacher][iSubjectPosition][1] =  veciSubject[iTeacher][iSubjectPosition][1] + 2
+        for iSubjectPosition in range(0,len(self.veciSubject[iTeacher])):
+            if self.veciSubject[iTeacher][iSubjectPosition][0] ==  self.subjectSchedule[time[0]][time[1]]:
+                self.veciSubject[iTeacher][iSubjectPosition][1] =  self.veciSubject[iTeacher][iSubjectPosition][1] + 2
         self.subjectSchedule[time[0]][time[1]] = iConstEmpty
 
     def bComplete(self):
@@ -72,7 +94,7 @@ class Teacher(Student):
         self.veciStudent = veciStudent
         self.veciSubject = veciSubject
         self.schedule = schedule
-        self.subjectSchedule = []#teacher其实不需要课程判断，因为在班级的TimeAvailable中已经判断过了
+        self.subjectSchedule = []#无用变量，teacher其实不需要课程判断，因为在班级的TimeAvailable中已经判断过了
 
     def AssignToStudent(self,iStudent,time):
         self.schedule[time[0]][time[1]] = iStudent
@@ -312,9 +334,7 @@ while True:
             tempTime = colIndex2Time(iCol)
             if TempClassRow[iCol] != u'':
                 if TempClassRow[0] in studentNameList:
-                    if studentNameList.index(TempClassRow[0]) == 3:
-                        print 'here'
-                    tempTime = colIndex2Time(iCol)
+                    #tempTime = colIndex2Time(iCol)
                     if iCol%2 == 1: #课程
                             studentList[studentNameList.index(TempClassRow[0])].subjectSchedule[tempTime[0]][tempTime[1]] = -1
                     else: #老师
@@ -328,9 +348,10 @@ while True:
                         if TempClassRow[0] in studentNameList:
                             teacherList[teacherNameList.index(TempClassRow[iCol])].schedule[tempTime[0]][tempTime[1]] = -1
 
-                print 'here'
+                #print 'here'
             else:
-                print 'hereeeeeeeee'
+                x = 1
+                #print 'hereeeeeeeee'
 
     ##############################################################################################
     #随机查找
@@ -354,6 +375,7 @@ while True:
         # print studentList[iStudent].schedule
         re = np.where(studentList[iStudent].schedule == iConstEmpty)
         if len(re[0]) == 0:  #DEBUG;进入这个地方表明学生时间表已经填满，但是学生还有未排上的课
+            x = 1
             print 'here'     #常见有78节课，以及写课冲突等
 
         iTimeRandom = random.randint(0, len(re[0]) - 1)
@@ -368,7 +390,7 @@ while True:
                 bTemp2 = studentList[iStudent].AssignedTeacher(iTeacher, iLTime)
                 if teacherList[iTeacher].veciStudent[iStudent] == 0 and studentList[iStudent].veciTeacher[iTeacher] == 0:
                     bCourseAssigned = True
-                    print teacherList[iTeacher].strName
+                    #print teacherList[iTeacher].strName
 
 
             else:
@@ -384,8 +406,9 @@ while True:
             while iTempLoopCount > len(re[0]):
                 # 如果这里卡死了 打乱对应教师和班级重新排课
                 # 5秒没循环出来，将此老师优先安排并且复原已经安排了的课程。
-                # print studentList[iStudent].strName
-                # print studentList[iStudent].schedule
+                print studentList[iStudent].strName
+                print teacherList[iTeacher].strName
+                #print studentList[iStudent].schedule
 
                 iTimeSession = random.randint(0, 2)
                 iTimeDay = random.randint(0, 4)
@@ -472,9 +495,9 @@ while True:
                         # 这个else是DEBUG项，规定写不写-1（占用）和-10（空）
                         # 注意取消DEBUG输出时，要保留最后的iOutCol = iOutCol + 2跳格
                         sheetTout.write(iOutRow, iOutCol, label=studentList[i].schedule[k][j])
-                        sheetTout.write(iOutRow, iOutCol + 1, label=-15)
+                        sheetTout.write(iOutRow, iOutCol + 1, label=iTeacherVoid)
                         sheetTout.write(iOutRow, iOutCol + 2, label=studentList[i].schedule[k][j])
-                        sheetTout.write(iOutRow, iOutCol + 3, label=-15)
+                        sheetTout.write(iOutRow, iOutCol + 3, label=iTeacherVoid)
                         #######
                         iOutCol = iOutCol + 2
                 else:
@@ -484,7 +507,7 @@ while True:
                     else:
                     # 这个else是DEBUG项，规定写不写-1（占用）和-10（空）
                         sheetTout.write(iOutRow, iOutCol, label=studentList[i].schedule[k][j])
-                        sheetTout.write(iOutRow, iOutCol + 1, label=-15)
+                        sheetTout.write(iOutRow, iOutCol + 1, label=iTeacherVoid)
 
 
                 iOutCol = iOutCol + 2
