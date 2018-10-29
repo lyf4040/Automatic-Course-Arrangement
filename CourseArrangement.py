@@ -15,8 +15,10 @@ import os
 # 修改一个老师同一天上一个班两门不同课程会卡死的问题
 ####################################
 
+iInternship = -1 # 实习
 iConstEmpty = -10 #定义一个数表示课表上的空时间
 iTeacherVoid = -15 #写死的教师
+iSubjectVoid = -20 #空课程名，表示该班某老师只上一门课，不用考虑一天上多次该老师的不同课程
 #以学生为父类，对老师进行需要班级的写入
 #增加schedule的输入，控制某些学生在某些时间固定上什么课
 class Student:
@@ -27,47 +29,81 @@ class Student:
         self.veciSubject = veciSubject # index 为老师编号，内容为 [课程编号，周课时]
         self.schedule = schedule #教师编号
         self.subjectSchedule =  np.copy(self.schedule) #课程编号
-        self.iSubject = -20 #
+        self.iSubject = iSubjectVoid #
 
 
     def TimeAvailable(self, time,iTeacher):
         #是否需要传入，课程名字
         #if len(veciSubject[iTeacher]) == 1:
         #这里要等到读入总排课表和去掉上下午班才能做！！！！！！！！！！！！！！！！！！！
+        #还是要加入课程名判断，因为1/2节不能上体育课
+
+        self.iSubject = random.randint(0, len(self.veciSubject[iTeacher]) - 1)
+        while self.veciSubject[iTeacher][self.iSubject][1] == 0:
+            self.iSubject = (self.iSubject + 1) % (len(self.veciSubject[iTeacher]))
+
+
+        if time[0] == 0:
+            #判断是不是下午实习的班
+            bInternship = True
+            for i in range(0,4):
+                if self.schedule[2][i] != iInternship:
+                    bInternship = False
+
+            if bInternship:
+                if subjectNameList[self.veciSubject[iTeacher][self.iSubject][0]] == u'体育' \
+                        or subjectNameList[self.veciSubject[iTeacher][self.iSubject][0]] == u'艺体' \
+                        or subjectNameList[self.veciSubject[iTeacher][self.iSubject][0]] == u'音乐':
+                    return False
+
+
+
+
+
         imaxTeacherSubjectLen = 0
-        for i in range(0,len(veciSubject)):
-            if imaxTeacherSubjectLen < len(veciSubject[i]):
-                imaxTeacherSubjectLen = len(veciSubject[i])
+        for i in range(0,len(self.veciSubject)):
+            if imaxTeacherSubjectLen < len(self.veciSubject[i]):
+                imaxTeacherSubjectLen = len(self.veciSubject[i])
 
-        #print 'here'
-        #self.iSubjectiSubject = random.randint(0, len(self.veciSubject[iTeacher]) - 1)
-        #while self.veciSubject[iTeacher][self.iSubject][1] == 0:
-            #self.iSubject = (self.iSubject + 1) % (len(self.veciSubject[iTeacher]))
+        if imaxTeacherSubjectLen == 1: #绝大部分老师都只教一门课程，所以保留单门课程代码
+            for i in range(0, 3):
+                if self.subjectSchedule[i][time[1]] == self.iSubject and teacherList[iTeacher].strName != u'':
+                    return False
 
-
-
-        for i in range(0,3):
-            if self.subjectSchedule[i][time[1]] == self.iSubject and teacherList[iTeacher].strName != u'':
+            for i in range(0, 3):
+                if self.schedule[i][time[1]] == iTeacher and teacherList[iTeacher].strName != u'':
+                    # 第一个判断为限定老师一天只上这个班一节课！！！！！！！！！！！！！！！！！！！！！
+                    # 后期随机生成科目时根据科目判断
+                    # 所以要记录今天上了哪些科目了
+                    return False
+            if self.schedule[time[0]][time[1]] == iConstEmpty:
+                return True
+            else:
                 return False
+        else: # 这部分暂时没有数据可以调试,一个老师上一个班几门课
+            self.iSubject = random.randint(0, len(self.veciSubject[iTeacher]) - 1)
+            while self.veciSubject[iTeacher][self.iSubject][1] == 0:
+                self.iSubject = (self.iSubject + 1) % (len(self.veciSubject[iTeacher]))
 
-        for i in range(0,3):
-            if self.schedule[i][time[1]] == iTeacher and teacherList[iTeacher].strName != u'':
-                # 第一个判断为限定老师一天只上这个班一节课！！！！！！！！！！！！！！！！！！！！！
-                # 后期随机生成科目时根据科目判断
-                # 所以要记录今天上了哪些科目了
-                return False
-        if self.schedule[time[0]][time[1]] == iConstEmpty:
-            return True
-        else:
-            return False
+
+
+
+
+
+
 
     def AssignedTeacher(self, iTeacher, time):
         self.schedule[time[0]][time[1]] = iTeacher
         self.veciTeacher[iTeacher] = self.veciTeacher[iTeacher] - 2
-        iSubject = random.randint(0, len(self.veciSubject[iTeacher]) - 1)
-        while self.veciSubject[iTeacher][iSubject][1] == 0:
-            iSubject = (iSubject + 1) % (len(self.veciSubject[iTeacher]))
-        self.subjectSchedule[time[0]][time[1]] = self.veciSubject[iTeacher][iSubject][0]
+        if self.iSubject == iSubjectVoid:
+            self.iSubject = random.randint(0, len(self.veciSubject[iTeacher]) - 1)
+            while self.veciSubject[iTeacher][self.iSubject][1] == 0:
+                self.iSubject = (self.iSubject + 1) % (len(self.veciSubject[iTeacher]))
+
+        #若不通过这个判断，则表明已经输入过了self.iSubject，即该老师有多门上这个班的课程，并且经过了TimeAvailable检验
+
+        self.subjectSchedule[time[0]][time[1]] = self.veciSubject[iTeacher][self.iSubject][0]
+        self.iSubject = iSubjectVoid
         return True
 
     def UnAssignedTeacher(self, iTeacher, time):
@@ -304,6 +340,7 @@ while True:
                 if col_dataIntern[iTemp] == "下午班":
                     for k in range(0, 5):
                         timeSchedule[2, k] = -1
+                        timeSchedule[1, k] = -1
                 else:
                     iTemp = col_data.index(teacherNameList[i])
                     # 找到班级
@@ -361,10 +398,6 @@ while True:
 
         iTeacher = random.randint(0, len(teacherList) - 1)
         iStudent = random.randint(0, len(studentList) - 1)
-        # iTimeSession = random.randint(0, 2)
-        # iTimeDay = random.randint(0, 4)
-        # iLTime = [iTimeSession,iTimeDay] #第一个是第几节，第二个是哪一天
-        # 以下的while是伪随机(并没有平均分配)
         if not studentList[iStudent].bComplete():
             while teacherList[iTeacher].veciStudent[iStudent] == 0:
                 # print teacherList[iTeacher].veciStudent[iStudent]
@@ -372,18 +405,34 @@ while True:
         else:
             continue
 
-        # print studentList[iStudent].schedule
+
+        # 生成时间
+        # 先把一二节装完再装其他位置
         re = np.where(studentList[iStudent].schedule == iConstEmpty)
+        iSession1index = np.where(re[0] == 0)[0]
+
+        if iSession1index.shape[0]>0:
+            iTimeRandom =  random.randint(0, iSession1index.shape[0] - 1)
+            iLTime = [re[0][iSession1index[iTimeRandom]], re[1][iSession1index[iTimeRandom]]]
+        else:
+            iTimeRandom = random.randint(0, len(re[0]) - 1)
+            iLTime = [re[0][iTimeRandom], re[1][iTimeRandom]]
+
         if len(re[0]) == 0:  #DEBUG;进入这个地方表明学生时间表已经填满，但是学生还有未排上的课
             x = 1
             print 'here'     #常见有78节课，以及写课冲突等
 
-        iTimeRandom = random.randint(0, len(re[0]) - 1)
-        iLTime = [re[0][iTimeRandom], re[1][iTimeRandom]]
+
+
+
+
+        # 生成课程名
+
 
         # 以下的while也可以改成伪随机形式来提高效率AssignToStudent
         bCourseAssigned = False
         iTempLoopCount = 0
+
         while bCourseAssigned == False:
             if teacherList[iTeacher].TimeAvailable(iLTime) and studentList[iStudent].TimeAvailable(iLTime, iTeacher):
                 bTemp1 = teacherList[iTeacher].AssignToStudent(iStudent, iLTime)
@@ -399,6 +448,7 @@ while True:
                     bTemp2 = studentList[iStudent].AssignedTeacher(iTeacher, iLTime)
                     bCourseAssigned = True
                 else:
+
                     iTimeRandom = (iTimeRandom + 1) % len(re[0])
                     iLTime = [re[0][iTimeRandom], re[1][iTimeRandom]]
                     iTempLoopCount = iTempLoopCount + 1
@@ -407,12 +457,16 @@ while True:
                 # 如果这里卡死了 打乱对应教师和班级重新排课
                 # 5秒没循环出来，将此老师优先安排并且复原已经安排了的课程。
                 print studentList[iStudent].strName
+               # print studentList[iStudent].schedule
                 print teacherList[iTeacher].strName
+              #  print teacherList[iTeacher].schedule
                 #print studentList[iStudent].schedule
 
                 iTimeSession = random.randint(0, 2)
                 iTimeDay = random.randint(0, 4)
                 iLTime = [iTimeSession, iTimeDay]
+
+
                 if studentList[iStudent].schedule[iLTime[0]][iLTime[1]] != iConstEmpty and \
                         studentList[iStudent].schedule[iLTime[0]][iLTime[1]] != -1:
                     # 这一句的判断决定了，如果读入总课表时写死不填-1，就会进入取消循环。。所以读入总课表时只能都写-1
