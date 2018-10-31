@@ -39,6 +39,7 @@ class Student:
         #还是要加入课程名判断，因为1/2节不能上体育课
         #print self.strName
 
+
         self.iSubject = random.randint(0, len(self.veciSubject[iTeacher]) - 1)
         while self.veciSubject[iTeacher][self.iSubject][1] == 0:
             self.iSubject = (self.iSubject + 1) % (len(self.veciSubject[iTeacher]))
@@ -563,22 +564,44 @@ while True:
             if not studentList[i].bComplete():
                 bStudentComplete = False
 
+        bEmptySession12 = False
+        for iStudent in range(0, len(studentNameList)):
+            if not studentList[iStudent].isInternshipClass():
+                for i in range(0, 5):
+                    if studentList[iStudent].schedule[0][i] == iConstEmpty:
+                        bEmptySession12 = True
+                        for j in range(1, 3):
+                            for k in range(0, 5):
+                                if studentList[iStudent].schedule[j][k] >= 0 and \
+                                        studentList[iStudent].subjectSchedule[j][k] >= 0:
+                                    iTeacher = int(studentList[iStudent].schedule[j][k])
+                                    studentList[iStudent].UnAssignedTeacher(iTeacher, [j, k])
+                                    teacherList[iTeacher].UnAssignToStudent(iStudent, [j, k])
+                                    if not teacherList[iTeacher].schedule[0][i] == iConstEmpty and teacherList[iTeacher].schedule[0][i]>0:
+                                        iStudent2 = int(teacherList[iTeacher].schedule[0][i])
+                                        teacherList[iTeacher].UnAssignToStudent(iStudent2, [0, i])
+                                        studentList[iStudent2].UnAssignedTeacher(iTeacher, [0, i])
+
+                                    if teacherList[iTeacher].TimeAvailable([0, i]) and studentList[iStudent].TimeAvailable([0, i], iTeacher):
+                                        bTemp1 = teacherList[iTeacher].AssignToStudent(iStudent, [0, i])
+                                        bTemp2 = studentList[iStudent].AssignedTeacher(iTeacher, [0, i])
+
+        if bEmptySession12:
+            continue
+
+
+
+
+
+
+
         if bTeacherComplete and bStudentComplete:
             bAssignComplete = True
 
-    ###纯理论班级第一二节必须有课的调整
-    bEmptySession12 = False
-    for iStudent in range(0,len(studentNameList)):
-        if not studentList[iStudent].isInternshipClass():
-            #
-            #print  studentList[iStudent].strName
-            for i in range(0,5):
-                if studentList[iStudent].schedule[0][k] == iConstEmpty:
-                    #print '第一二节有空课'
-                    bEmptySession12 = True
-                    #while bEmptySession12:
-                    #    print 'here'
-                    #    bEmptySession12 = False
+
+
+
+
 
 
 
