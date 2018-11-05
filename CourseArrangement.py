@@ -403,6 +403,11 @@ while True:
     nrows = sheetTotalTimeTableIn.nrows
     ncols = sheetTotalTimeTableIn.ncols
 
+    for i in range(0,len(studentNameList)):
+        x = 1
+       # print studentNameList[i]
+
+    TempErrList = []
     for iClassRow in range(4,nrows):
         TempClassRow = sheetTotalTimeTableIn.row_values(iClassRow)
         for iCol in range(1,ncols):
@@ -420,14 +425,41 @@ while True:
                     if iCol%2 == 1:
                         print 'error, subject Col should not be here'
                     else:
-                        if TempClassRow[0] in studentNameList:
+                        if TempClassRow[0] in studentNameList:#这里为啥要加这个傻逼判断
                             teacherList[teacherNameList.index(TempClassRow[iCol])].schedule[tempTime[0]][tempTime[1]] = -1
+                        if TempClassRow[0] not in studentNameList:
+                            teacherList[teacherNameList.index(TempClassRow[iCol])].schedule[tempTime[0]][tempTime[1]] = -1
+                            if TempClassRow[iCol] not in TempErrList:
+                                TempErrList.append(TempClassRow[iCol])
+                if iCol > 0 and iCol%2 == 0: #老师列
+                    #用"/"识别多个老师上同一节课
+                    teacherNameTemp = unicode(TempClassRow[iCol])
+                    tempTeacherNameList = []
+                    if teacherNameTemp.find('/') != -1:
+                        while teacherNameTemp.find('/') != -1:
+
+                            print teacherNameTemp
+                            tempInt = teacherNameTemp.find('/')
+                            tempTeacherNameList.append(teacherNameTemp[0:tempInt])
+                            teacherNameTemp = teacherNameTemp[tempInt + 1:]
+
+                        tempTeacherNameList.append(teacherNameTemp)
+                        for iMutiTeacher in range(0,len(tempTeacherNameList)):
+                            print tempTeacherNameList[iMutiTeacher]
+
+
+
+
+
+
 
                 #print 'here'
             else:
                 x = 1
                 #print 'hereeeeeeeee'
 
+    #for i in range(0,len(TempErrList)):
+    #    print TempErrList[i]
     ####除开上午实习班，其他班下午可以排课
     for i in range(0,len(studentNameList)):
         if not studentList[i].isAMInternshipClass():
