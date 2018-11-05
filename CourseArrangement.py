@@ -433,19 +433,32 @@ while True:
                                 TempErrList.append(TempClassRow[iCol])
                 if iCol > 0 and iCol%2 == 0: #老师列
                     #用"/"识别多个老师上同一节课
+                    tempTime = colIndex2Time(iCol)
                     teacherNameTemp = unicode(TempClassRow[iCol])
-                    tempTeacherNameList = []
+                    #tempTeacherNameList = []
                     if teacherNameTemp.find('/') != -1:
                         while teacherNameTemp.find('/') != -1:
-
-                            print teacherNameTemp
+                            #print teacherNameTemp
                             tempInt = teacherNameTemp.find('/')
-                            tempTeacherNameList.append(teacherNameTemp[0:tempInt])
+
+                            if teacherNameTemp[0:tempInt] in teacherNameList:
+                                teacherList[teacherNameList.index(teacherNameTemp[0:tempInt])].schedule[tempTime[0]][tempTime[1]] = -1
+                               # print  teacherList[teacherNameList.index(teacherNameTemp[0:tempInt])].strName
+                               # print  teacherList[teacherNameList.index(teacherNameTemp[0:tempInt])].schedule
+
+                            #tempTeacherNameList.append(teacherNameTemp[0:tempInt])
                             teacherNameTemp = teacherNameTemp[tempInt + 1:]
 
-                        tempTeacherNameList.append(teacherNameTemp)
-                        for iMutiTeacher in range(0,len(tempTeacherNameList)):
-                            print tempTeacherNameList[iMutiTeacher]
+                        #tempTeacherNameList.append(teacherNameTemp)
+
+                        if teacherNameTemp in teacherNameList:
+                            teacherList[teacherNameList.index(teacherNameTemp)].schedule[tempTime[0]][tempTime[1]] = -1
+                            #print teacherList[teacherNameList.index(teacherNameTemp)].strName
+                            #print teacherList[teacherNameList.index(teacherNameTemp)].schedule
+                        #for iMutiTeacher in range(0,len(tempTeacherNameList)):
+                            #print tempTeacherNameList[iMutiTeacher]
+
+
 
 
 
