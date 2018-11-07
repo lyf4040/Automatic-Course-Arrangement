@@ -21,24 +21,20 @@ class Student:
         self.veciSubject = veciSubject # index 为老师编号，内容为 [课程编号，周课时]或者 [课程编号,周课时,0] (第三位同时给出后续特殊情况拓展的可能性)
         self.schedule = schedule #教师编号
         self.subjectSchedule =  np.copy(self.schedule) #课程编号
-        self.iSubject = iConstSubjectVoid #
         self.b4session = False #四节连拍标识
 
 
-    def TimeAvailable(self, time,iTeacher):
-        self.iSubject = random.randint(0, len(self.veciSubject[iTeacher]) - 1)
-        while self.veciSubject[iTeacher][self.iSubject][1] == 0:
-            self.iSubject = (self.iSubject + 1) % (len(self.veciSubject[iTeacher]))
+    def TimeAvailable(self, time,iTeacher,iSubject):
         if time[0] == 0:
-            if subjectNameList[self.veciSubject[iTeacher][self.iSubject][0]] == u'体育' \
-                    or subjectNameList[self.veciSubject[iTeacher][self.iSubject][0]] == u'艺体' \
-                    or subjectNameList[self.veciSubject[iTeacher][self.iSubject][0]] == u'音乐':
+            if subjectNameList[self.veciSubject[iTeacher][iSubject][0]] == u'体育' \
+                    or subjectNameList[self.veciSubject[iTeacher][iSubject][0]] == u'艺体' \
+                    or subjectNameList[self.veciSubject[iTeacher][iSubject][0]] == u'音乐':
                 return False
 
-        if len(self.veciSubject[iTeacher][self.iSubject]) == 3:
-            if self.veciSubject[iTeacher][self.iSubject][2] == 0:# 0: 四节连排
+        if len(self.veciSubject[iTeacher][iSubject]) == 3:
+            if self.veciSubject[iTeacher][iSubject][2] == 0:# 0: 四节连排
                 print "检测到4节连排"
-                if self.veciSubject[iTeacher][self.iSubject][1] >= 4:
+                if self.veciSubject[iTeacher][iSubject][1] >= 4:
                     if self.schedule[0][time[1]] == iConstEmpty and self.schedule[1][time[1]] == iConstEmpty:
                         self.b4session = True
                         return True
@@ -51,7 +47,7 @@ class Student:
                 print "未知课程类型"
         else:#普通情形
             for i in range(0, 3):
-                if self.subjectSchedule[i][time[1]] == self.veciSubject[iTeacher][self.iSubject][0] and teacherList[
+                if self.subjectSchedule[i][time[1]] == self.veciSubject[iTeacher][iSubject][0] and teacherList[
                     iTeacher].strName != u'':
                     return False
 
@@ -63,26 +59,26 @@ class Student:
 
 
 
-    def AssignedTeacher(self, iTeacher, time):
+    def AssignedTeacher(self, iTeacher, time,iSubject):
         self.schedule[time[0]][time[1]] = iTeacher
         self.veciTeacher[iTeacher] = self.veciTeacher[iTeacher] - 2
 
-        if self.iSubject == iConstSubjectVoid:
+        if iSubject == iConstSubjectVoid:
             print '排课时课程编号为空'
-            self.iSubject = random.randint(0, len(self.veciSubject[iTeacher]) - 1)
-            while self.veciSubject[iTeacher][self.iSubject][1] == 0:
-                self.iSubject = (self.iSubject + 1) % (len(self.veciSubject[iTeacher]))
+            iSubject = random.randint(0, len(self.veciSubject[iTeacher]) - 1)
+            while veciSubject[iTeacher][iSubject][1] == 0:
+                iSubject = (iSubject + 1) % (len(self.veciSubject[iTeacher]))
 
         #若不通过这个判断，则表明已经输入过了self.iSubject，即该老师有多门上这个班的课程，并且经过了TimeAvailable检验
 
-        self.subjectSchedule[time[0]][time[1]] = self.veciSubject[iTeacher][self.iSubject][0]
-        self.veciSubject[iTeacher][self.iSubject][1] = self.veciSubject[iTeacher][self.iSubject][1] -2
+        self.subjectSchedule[time[0]][time[1]] = self.veciSubject[iTeacher][iSubject][0]
+        self.veciSubject[iTeacher][iSubject][1] = self.veciSubject[iTeacher][iSubject][1] -2
 
         ##若是四节连排
         #
         #
         #
-        self.iSubject = iConstSubjectVoid
+
         #这里返回提示 告诉 teacher类是4连排还是普通排
         return True
 
@@ -96,8 +92,6 @@ class Student:
             if self.veciSubject[iTeacher][iSubjectPosition][0] ==  self.subjectSchedule[time[0]][time[1]]:
                 self.veciSubject[iTeacher][iSubjectPosition][1] =  self.veciSubject[iTeacher][iSubjectPosition][1] + 2
         self.subjectSchedule[time[0]][time[1]] = iConstEmpty
-
-
 
     def bComplete(self):
         bTemp = True
@@ -481,29 +475,30 @@ while True:
 
         if len(re[0]) == 0:  #DEBUG;进入这个地方表明学生时间表已经填满，但是学生还有未排上的课
             print '班级的课多了，学生课表已经填满'     #常见有78节课，以及写课冲突等
+
         iTimeRandom = random.randint(0, len(re[0]) - 1)
         iLTime = [re[0][iTimeRandom], re[1][iTimeRandom]]
 
-
-
-        # 生成课程名
-
-        # 以下的while也可以改成伪随机形式来提高效率AssignToStudent
         bCourseAssigned = False
         iTempLoopCount = 0
 
         while bCourseAssigned == False:
-            if teacherList[iTeacher].TimeAvailable(iLTime) and studentList[iStudent].TimeAvailable(iLTime, iTeacher):
-                bTemp2 = studentList[iStudent].AssignedTeacher(iTeacher, iLTime)
+            # 生成课程
+            iSubject = random.randint(0, len(studentList[iStudent].veciSubject[iTeacher]) - 1)
+            while studentList[iStudent].veciSubject[iTeacher][iSubject][1] == 0:
+                iSubject = (iSubject + 1) % (len(studentList[iStudent].veciSubject[iTeacher]))
+
+            print iSubject
+
+            if teacherList[iTeacher].TimeAvailable(iLTime) and studentList[iStudent].TimeAvailable(iLTime, iTeacher,iSubject):
+                bTemp2 = studentList[iStudent].AssignedTeacher(iTeacher, iLTime,iSubject)
                 bTemp1 = teacherList[iTeacher].AssignToStudent(iStudent, iLTime)
                 if teacherList[iTeacher].veciStudent[iStudent] == 0 and studentList[iStudent].veciTeacher[iTeacher] == 0:
                     bCourseAssigned = True
                     #print teacherList[iTeacher].strName
-
-
             else:
-                if teacherList[iTeacher].strName == '' and studentList[iStudent].TimeAvailable(iLTime, iTeacher):
-                    bTemp2 = studentList[iStudent].AssignedTeacher(iTeacher, iLTime)
+                if teacherList[iTeacher].strName == '' and studentList[iStudent].TimeAvailable(iLTime, iTeacher,iSubject):
+                    bTemp2 = studentList[iStudent].AssignedTeacher(iTeacher, iLTime,iSubject)
                     bTemp1 = teacherList[iTeacher].AssignToStudent(iStudent, iLTime)
 
                     bCourseAssigned = True
@@ -515,9 +510,9 @@ while True:
             while iTempLoopCount > len(re[0]):
                 # 如果这里卡死了 打乱对应教师和班级重新排课
                 # 5秒没循环出来，将此老师优先安排并且复原已经安排了的课程。
-                #print studentList[iStudent].strName
+                print studentList[iStudent].strName
                 #print studentList[iStudent].schedule
-                #print teacherList[iTeacher].strName
+                print teacherList[iTeacher].strName
                 #print teacherList[iTeacher].schedule
                 #print studentList[iStudent].schedule
 
@@ -583,10 +578,15 @@ while True:
                                             teacherList[iTeacher].UnAssignToStudent(iStudent2, [0, i])
                                             studentList[iStudent2].UnAssignedTeacher(iTeacher, [0, i])
 
+                                        # 生成课程
+                                        iSubject = random.randint(0,len(studentList[iStudent].veciSubject[iTeacher]) - 1)
+                                        while studentList[iStudent].veciSubject[iTeacher][iSubject][1] == 0:
+                                            iSubject = (iSubject + 1) % (len(studentList[iStudent].veciSubject[iTeacher]))
+
                                         if teacherList[iTeacher].TimeAvailable([0, i]) and studentList[
-                                            iStudent].TimeAvailable([0, i], iTeacher):
+                                            iStudent].TimeAvailable([0, i], iTeacher,iSubject):
                                             bTemp1 = teacherList[iTeacher].AssignToStudent(iStudent, [0, i])
-                                            bTemp2 = studentList[iStudent].AssignedTeacher(iTeacher, [0, i])
+                                            bTemp2 = studentList[iStudent].AssignedTeacher(iTeacher, [0, i],iSubject)
 
 
 
