@@ -74,11 +74,8 @@ class Student:
         self.subjectSchedule[time[0]][time[1]] = self.veciSubject[iTeacher][iSubject][0]
         self.veciSubject[iTeacher][iSubject][1] = self.veciSubject[iTeacher][iSubject][1] -2
 
-        ##若是四节连排
-        #
-        #
-        #
 
+        #
         #这里返回提示 告诉 teacher类是4连排还是普通排
         return True
 
@@ -129,9 +126,6 @@ class Student:
         return bAM
 
 
-
-
-
 class Teacher(Student):
     def __init__(self,strName,veciStudent,veciSubject,schedule):
         # subject为向量，第i个表示第i门课的课数（需要一个课程编号的表）
@@ -158,11 +152,26 @@ class Teacher(Student):
 
         return True
 
-    def TimeAvailable(self, time):
-        if self.schedule[time[0]][time[1]] == iConstEmpty:
-            return True
+    def TimeAvailable(self, time,iStudent,iSubject):
+        if len(self.veciSubject[iStudent][iSubject]) == 3:
+            if self.veciSubject[iStudent][iSubject][2] == 0:  # 0: 四节连排
+                print "检测到4节连排"
+                if self.veciSubject[iStudent][iSubject][1] >= 4:
+                    if self.schedule[0][time[1]] == iConstEmpty and self.schedule[1][time[1]] == iConstEmpty:
+                        return True
+                    else:
+                        return False
+                else:  # 4节连排的课只剩下两节了
+                    if self.schedule[time[0]][time[1]] == iConstEmpty:
+                        return True
+            else:
+                print "未知课程类型"
         else:
-            return False
+            if self.schedule[time[0]][time[1]] == iConstEmpty:
+                return True
+            else:
+                return False
+
 
     def bComplete(self):
         bTemp = True
@@ -199,8 +208,6 @@ def colIndex2Time(i):
     time.append(iDayIndex)
 
     return time
-
-
 
 
 ###excel读入等情形构建模块
@@ -378,16 +385,28 @@ while True:
                         timeSchedule[2, k] = -1
                         timeSchedule[1, k] = -1
                 else:
-                    iTemp = col_data.index(teacherNameList[i])
-                    # 找到班级
-                    for iFindStudent in range(0, len(studentNameList)):
-                        if studentStartList[iFindStudent] <= iTemp and iTemp <= studentEndList[iFindStudent]:
-                            iStudentFinded = iFindStudent
-                            break
-
-                    veciStudent[iStudentFinded] = veciStudent[iStudentFinded] + int(col_dataCourseNum[iTemp])
-                    tempSubjcetList = [subjectNameList.index(col_dataCourseName[iTemp]), int(col_dataCourseNum[iTemp])]
-                    veciSubject[iStudentFinded].append(tempSubjcetList)
+                    if  col_dataIntern[iTemp] == "4节连排":
+                        iTemp = col_data.index(teacherNameList[i])
+                        # 找到班级
+                        for iFindStudent in range(0, len(studentNameList)):
+                            if studentStartList[iFindStudent] <= iTemp and iTemp <= studentEndList[iFindStudent]:
+                                iStudentFinded = iFindStudent
+                                break
+                        veciStudent[iStudentFinded] = veciStudent[iStudentFinded] + int(col_dataCourseNum[iTemp])
+                        tempSubjcetList = [subjectNameList.index(col_dataCourseName[iTemp]),
+                                           int(col_dataCourseNum[iTemp]),0]
+                        veciSubject[iStudentFinded].append(tempSubjcetList)
+                    else:
+                        iTemp = col_data.index(teacherNameList[i])
+                        # 找到班级
+                        for iFindStudent in range(0, len(studentNameList)):
+                            if studentStartList[iFindStudent] <= iTemp and iTemp <= studentEndList[iFindStudent]:
+                                iStudentFinded = iFindStudent
+                                break
+                        veciStudent[iStudentFinded] = veciStudent[iStudentFinded] + int(col_dataCourseNum[iTemp])
+                        tempSubjcetList = [subjectNameList.index(col_dataCourseName[iTemp]),
+                                           int(col_dataCourseNum[iTemp])]
+                        veciSubject[iStudentFinded].append(tempSubjcetList)
 
             col_data[iTemp] = -1
 
@@ -488,9 +507,9 @@ while True:
             while studentList[iStudent].veciSubject[iTeacher][iSubject][1] == 0:
                 iSubject = (iSubject + 1) % (len(studentList[iStudent].veciSubject[iTeacher]))
 
-            print iSubject
+            #print iSubject
 
-            if teacherList[iTeacher].TimeAvailable(iLTime) and studentList[iStudent].TimeAvailable(iLTime, iTeacher,iSubject):
+            if teacherList[iTeacher].TimeAvailable(iLTime,iStudent,iSubject) and studentList[iStudent].TimeAvailable(iLTime, iTeacher,iSubject):
                 bTemp2 = studentList[iStudent].AssignedTeacher(iTeacher, iLTime,iSubject)
                 bTemp1 = teacherList[iTeacher].AssignToStudent(iStudent, iLTime)
                 if teacherList[iTeacher].veciStudent[iStudent] == 0 and studentList[iStudent].veciTeacher[iTeacher] == 0:
@@ -583,7 +602,7 @@ while True:
                                         while studentList[iStudent].veciSubject[iTeacher][iSubject][1] == 0:
                                             iSubject = (iSubject + 1) % (len(studentList[iStudent].veciSubject[iTeacher]))
 
-                                        if teacherList[iTeacher].TimeAvailable([0, i]) and studentList[
+                                        if teacherList[iTeacher].TimeAvailable([0, i],iStudent,iSubject) and studentList[
                                             iStudent].TimeAvailable([0, i], iTeacher,iSubject):
                                             bTemp1 = teacherList[iTeacher].AssignToStudent(iStudent, [0, i])
                                             bTemp2 = studentList[iStudent].AssignedTeacher(iTeacher, [0, i],iSubject)
