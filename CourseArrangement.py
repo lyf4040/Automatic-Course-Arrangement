@@ -33,7 +33,7 @@ class Student:
 
         if len(self.veciSubject[iTeacher][iSubject]) == 3:
             if self.veciSubject[iTeacher][iSubject][2] == 0:# 0: 四节连排
-                print "检测到4节连排"
+                #print "检测到4节连排"
                 if self.veciSubject[iTeacher][iSubject][1] >= 4:
                     if self.schedule[0][time[1]] == iConstEmpty and self.schedule[1][time[1]] == iConstEmpty:
                         self.b4session = True
@@ -59,7 +59,7 @@ class Student:
 
 
 
-    def AssignedTeacher(self, iTeacher, time,iSubject):
+    def AssignedTeacher(self, time,iTeacher ,iSubject):
         self.schedule[time[0]][time[1]] = iTeacher
         self.veciTeacher[iTeacher] = self.veciTeacher[iTeacher] - 2
 
@@ -79,15 +79,18 @@ class Student:
         #这里返回提示 告诉 teacher类是4连排还是普通排
         return True
 
-    def UnAssignedTeacher(self, iTeacher, time):
+    def UnAssignedTeacher(self, time ):
         ###若是四节连排则需要取消一上午  得放到 self.schedule[time[0]][time[1]] = iConstEmpty之前
+        tempiTeacher = int(self.schedule[time[0]][time[1]])
 
         #正常取消
-        self.veciTeacher[iTeacher] = self.veciTeacher[iTeacher] + 2
+        self.veciTeacher[tempiTeacher] = self.veciTeacher[tempiTeacher] + 2
+
+        for iSubjectPosition in range(0,len(self.veciSubject[tempiTeacher])):
+            if self.veciSubject[tempiTeacher][iSubjectPosition][0] ==  self.subjectSchedule[time[0]][time[1]]:
+                self.veciSubject[tempiTeacher][iSubjectPosition][1] =  self.veciSubject[tempiTeacher][iSubjectPosition][1] + 2
+
         self.schedule[time[0]][time[1]] = iConstEmpty
-        for iSubjectPosition in range(0,len(self.veciSubject[iTeacher])):
-            if self.veciSubject[iTeacher][iSubjectPosition][0] ==  self.subjectSchedule[time[0]][time[1]]:
-                self.veciSubject[iTeacher][iSubjectPosition][1] =  self.veciSubject[iTeacher][iSubjectPosition][1] + 2
         self.subjectSchedule[time[0]][time[1]] = iConstEmpty
 
     def bComplete(self):
@@ -137,25 +140,23 @@ class Teacher(Student):
         self.schedule = schedule
         self.subjectSchedule = []#无用变量，teacher其实不需要课程判断，因为在班级的TimeAvailable中已经判断过了
 
-    def AssignToStudent(self,iStudent,time):
+    def AssignToStudent(self,time,iStudent,iSubject):
         self.schedule[time[0]][time[1]] = iStudent
         self.veciStudent[iStudent] = self.veciStudent[iStudent] - 2
         #这里如何判断是四节连排?
         return True
 
-    def UnAssignToStudent(self,iStudent,time):
-        # 若是四节连排，则需取消一上午并且 + 4
-
-        # 正常取消
-        self.schedule[time[0]][time[1]] = iConstEmpty
+    def UnAssignToStudent(self,time,iStudent):
+        #老师必须传入iStudent的原因是  空（u' '）老师的schedule中没记录对应的班级
         self.veciStudent[iStudent] = self.veciStudent[iStudent] + 2
 
+        self.schedule[time[0]][time[1]] = iConstEmpty
         return True
 
     def TimeAvailable(self, time,iStudent,iSubject):
         if len(self.veciSubject[iStudent][iSubject]) == 3:
             if self.veciSubject[iStudent][iSubject][2] == 0:  # 0: 四节连排
-                print "检测到4节连排"
+                #print "检测到4节连排"
                 if self.veciSubject[iStudent][iSubject][1] >= 4:
                     if self.schedule[0][time[1]] == iConstEmpty and self.schedule[1][time[1]] == iConstEmpty:
                         return True
@@ -209,6 +210,35 @@ def colIndex2Time(i):
 
     return time
 
+
+
+
+def iAssignSubjectFinder(iStudent,iTeacher):
+    iSubject = random.randint(0, len(studentList[iStudent].veciSubject[iTeacher]) - 1)
+    while studentList[iStudent].veciSubject[iTeacher][iSubject][1] == 0:
+        iSubject = (iSubject + 1) % (len(studentList[iStudent].veciSubject[iTeacher]))
+        #print 'here'
+    return iSubject
+
+
+def tryAssign(iLTime,iStudent,iTeacher):
+    iSubject = iAssignSubjectFinder(iStudent,iTeacher)
+    if teacherList[iTeacher].TimeAvailable(iLTime, iStudent, iSubject) and studentList[iStudent].TimeAvailable(iLTime,iTeacher,iSubject):
+        studentList[iStudent].AssignedTeacher(iLTime, iTeacher, iSubject)
+        teacherList[iTeacher].AssignToStudent(iLTime, iStudent, iSubject)
+        return True
+    else:
+        if teacherList[iTeacher].strName == '' and studentList[iStudent].TimeAvailable(iLTime, iTeacher, iSubject):
+            studentList[iStudent].AssignedTeacher(iLTime, iTeacher, iSubject)
+            teacherList[iTeacher].AssignToStudent(iLTime, iStudent, iSubject)
+            return True
+        else:
+            return False
+
+def UnAssign(iLTime,iStudent,iTeacher):
+    studentList[iStudent].UnAssignedTeacher(iLTime, iTeacher, iSubject)
+    teacherList[iTeacher].UnAssignToStudent(iLTime, iStudent, iSubject)
+    return True
 
 ###excel读入等情形构建模块
 import xlrd
@@ -485,6 +515,7 @@ while True:
 
         iTeacher = random.randint(0, len(teacherList) - 1)
         iStudent = random.randint(0, len(studentList) - 1)
+        
         if not studentList[iStudent].bComplete():
             while teacherList[iTeacher].veciStudent[iStudent] == 0:
                 iTeacher = (iTeacher + 1) % (len(teacherList))
@@ -503,61 +534,36 @@ while True:
 
         while bCourseAssigned == False:
             # 生成课程
-            iSubject = random.randint(0, len(studentList[iStudent].veciSubject[iTeacher]) - 1)
-            while studentList[iStudent].veciSubject[iTeacher][iSubject][1] == 0:
-                iSubject = (iSubject + 1) % (len(studentList[iStudent].veciSubject[iTeacher]))
+            bCourseAssigned = tryAssign(iLTime,iStudent,iTeacher)
 
-            #print iSubject
-
-            if teacherList[iTeacher].TimeAvailable(iLTime,iStudent,iSubject) and studentList[iStudent].TimeAvailable(iLTime, iTeacher,iSubject):
-                bTemp2 = studentList[iStudent].AssignedTeacher(iTeacher, iLTime,iSubject)
-                bTemp1 = teacherList[iTeacher].AssignToStudent(iStudent, iLTime)
-                if teacherList[iTeacher].veciStudent[iStudent] == 0 and studentList[iStudent].veciTeacher[iTeacher] == 0:
-                    bCourseAssigned = True
-                    #print teacherList[iTeacher].strName
-            else:
-                if teacherList[iTeacher].strName == '' and studentList[iStudent].TimeAvailable(iLTime, iTeacher,iSubject):
-                    bTemp2 = studentList[iStudent].AssignedTeacher(iTeacher, iLTime,iSubject)
-                    bTemp1 = teacherList[iTeacher].AssignToStudent(iStudent, iLTime)
-
-                    bCourseAssigned = True
-                else:
+            if bCourseAssigned == False:
                     iTimeRandom = (iTimeRandom + 1) % len(re[0])
                     iLTime = [re[0][iTimeRandom], re[1][iTimeRandom]]
                     iTempLoopCount = iTempLoopCount + 1
 
             while iTempLoopCount > len(re[0]):
-                # 如果这里卡死了 打乱对应教师和班级重新排课
-                # 5秒没循环出来，将此老师优先安排并且复原已经安排了的课程。
-                print studentList[iStudent].strName
-                #print studentList[iStudent].schedule
-                print teacherList[iTeacher].strName
-                #print teacherList[iTeacher].schedule
-                #print studentList[iStudent].schedule
-
+                ############################################################################ debug
+                #print studentList[iStudent].strName
+                #print teacherList[iTeacher].strName
+                ############################################################################
                 iTimeSession = random.randint(0, 2)
                 iTimeDay = random.randint(0, 4)
                 iLTime = [iTimeSession, iTimeDay]
 
-
                 if studentList[iStudent].schedule[iLTime[0]][iLTime[1]] != iConstEmpty and \
                         studentList[iStudent].schedule[iLTime[0]][iLTime[1]] != -1:
-                    # 这一句的判断决定了，如果读入总课表时写死不填-1，就会进入取消循环。。所以读入总课表时只能都写-1
-                    # 若要改善，需要给出一个写死课程的课程名list进入这里判断。。。
                     iteacherERRNUM = int(studentList[iStudent].schedule[iLTime[0]][iLTime[1]])
                     if iteacherERRNUM != iTeacher:
-                       # print 'errrrrrrrrrrrrrr'
-                        studentList[iStudent].UnAssignedTeacher(iteacherERRNUM, iLTime)
-                        teacherList[iteacherERRNUM].UnAssignToStudent(iStudent, iLTime)
-
+                        studentList[iStudent].UnAssignedTeacher(iLTime)
+                        teacherList[iteacherERRNUM].UnAssignToStudent(iLTime,iStudent)
                         iTempLoopCount = 0
 
                 if teacherList[iTeacher].schedule[iLTime[0]][iLTime[1]] != iConstEmpty and \
                         teacherList[iTeacher].schedule[iLTime[0]][iLTime[1]] != -1:
                     istudentERRNUM = int(teacherList[iTeacher].schedule[iLTime[0]][iLTime[1]])
                     if istudentERRNUM != iStudent:
-                        studentList[istudentERRNUM].UnAssignedTeacher(iTeacher, iLTime)
-                        teacherList[iTeacher].UnAssignToStudent(istudentERRNUM, iLTime)
+                        studentList[istudentERRNUM].UnAssignedTeacher(iLTime)
+                        teacherList[iTeacher].UnAssignToStudent(iLTime,istudentERRNUM)
                         iTempLoopCount = 0
 
 
@@ -583,29 +589,23 @@ while True:
                     for i in range(0, 5):
                         if studentList[iStudent].schedule[0][i] == iConstEmpty:
                             bEmptySession12 = True
-
+                            tempBool =  False
+                            print studentList[iStudent].strName
                             for j in range(1, 3):
                                 for k in range(0, 5):
                                     if studentList[iStudent].schedule[j][k] >= 0 and \
                                             studentList[iStudent].subjectSchedule[j][k] >= 0:
                                         iTeacher = int(studentList[iStudent].schedule[j][k])
-                                        studentList[iStudent].UnAssignedTeacher(iTeacher, [j, k])
-                                        teacherList[iTeacher].UnAssignToStudent(iStudent, [j, k])
+                                        studentList[iStudent].UnAssignedTeacher([j, k])
+                                        teacherList[iTeacher].UnAssignToStudent([j, k],iStudent)
                                         if not teacherList[iTeacher].schedule[0][i] == iConstEmpty and \
                                                 teacherList[iTeacher].schedule[0][i] > 0:
                                             iStudent2 = int(teacherList[iTeacher].schedule[0][i])
-                                            teacherList[iTeacher].UnAssignToStudent(iStudent2, [0, i])
-                                            studentList[iStudent2].UnAssignedTeacher(iTeacher, [0, i])
+                                            teacherList[iTeacher].UnAssignToStudent( [0, i],iStudent2)
+                                            studentList[iStudent2].UnAssignedTeacher( [0, i])
 
-                                        # 生成课程
-                                        iSubject = random.randint(0,len(studentList[iStudent].veciSubject[iTeacher]) - 1)
-                                        while studentList[iStudent].veciSubject[iTeacher][iSubject][1] == 0:
-                                            iSubject = (iSubject + 1) % (len(studentList[iStudent].veciSubject[iTeacher]))
+                                        tempBool = tryAssign([0, i],iStudent,iTeacher)
 
-                                        if teacherList[iTeacher].TimeAvailable([0, i],iStudent,iSubject) and studentList[
-                                            iStudent].TimeAvailable([0, i], iTeacher,iSubject):
-                                            bTemp1 = teacherList[iTeacher].AssignToStudent(iStudent, [0, i])
-                                            bTemp2 = studentList[iStudent].AssignedTeacher(iTeacher, [0, i],iSubject)
 
 
 
@@ -621,15 +621,6 @@ while True:
 
         if bTeacherComplete and bStudentComplete:
             bAssignComplete = True
-
-
-
-
-
-
-
-
-
 
 
     ###############################################################################################
@@ -732,7 +723,7 @@ while True:
             iOutRow = iOutRow + 1
         iOutRow = iOutRow + 2
 
-    print iScore
+    #print iScore
     if not bEmptySession12 :
         #print 'here'
         print iScore
